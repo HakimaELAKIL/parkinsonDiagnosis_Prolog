@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questionnaire</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+    }
+    #app {
+      max-width: 600px;
+      margin: auto;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .question {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button.yes {
+      background-color: #4CAF50;
+      color: white;
+    }
+    button.no {
+      background-color: #f44336;
+      color: white;
+    }
+    button.reset {
+      background-color: #007BFF;
+      color: white;
+      margin-top: 20px;
+      display: block;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h2>Questionnaire</h2>
+    <p id="question" class="question">Press start to begin the questionnaire.</p>
+    <div class="buttons">
+      <button class="yes" onclick="submitResponse('yes')">Yes</button>
+      <button class="no" onclick="submitResponse('no')">No</button>
+    </div>
+    <button class="reset" onclick="resetQuestionnaire()">Restart Questionnaire</button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    let currentQuestionId = 0;
+    const apiUrl = 'http://localhost:9000';
+
+    // Function to submit the user's response
+    function submitResponse(response) {
+      const payload = {
+        questionId: currentQuestionId,
+        response: response
+      };
+
+      fetch(`${apiUrl}/ask`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.nextQuestion && data.diagnosis === null) {
+            document.getElementById('question').innerText = data.nextQuestion;
+            currentQuestionId++;
+          } else if (data.diagnosis) {
+            document.getElementById('question').innerText = "Questionnaire complete!";
+            document.getElementById('result').innerText = `Diagnosis: ${data.diagnosis}`;
+          }
+        })
+        .catch(err => {
+          document.getElementById('result').innerText = 'Error communicating with the server.';
+          console.error(err);
+        });
+    }
+
+    // Function to reset the questionnaire
+    function resetQuestionnaire() {
+      fetch(`${apiUrl}/restart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reset: true })
+      })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('question').innerText = "Press start to begin the questionnaire.";
+          document.getElementById('result').innerText = "";
+          currentQuestionId = 0;
+        })
+        .catch(err => {
+          document.getElementById('result').innerText = 'Error resetting the questionnaire.';
+          console.error(err);
+        });
+    }
+  </script>
+</body>
+</html>
